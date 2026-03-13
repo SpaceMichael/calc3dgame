@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3D Math Adventure</title>
+  <style>
+    :root {
+      --bg: #fff7ef;
+      --card: rgba(255, 255, 255, 0.78);
+      --ink: #24314a;
+      --accent: #ff8a65;
+      --accent-2: #6c8cff;
+      --ok: #29b66f;
+      --warn: #ffb347;
+      --shadow: 0 18px 40px rgba(36, 49, 74, 0.18);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Arial, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, #fff2a8 0, transparent 25%),
+        radial-gradient(circle at top right, #b8e1ff 0, transparent 25%),
+        linear-gradient(180deg, #e9f7ff 0%, #fff7ef 48%, #ffe7d1 100%);
+      min-height: 100vh;
+    }
+
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    body::before {
+      inset: auto 0 0 0;
+      height: 180px;
+      background:
+        radial-gradient(circle at 10% 100%, #7ad76d 0 22%, transparent 23%),
+        radial-gradient(circle at 24% 100%, #5ac85b 0 20%, transparent 21%),
+        radial-gradient(circle at 48% 100%, #7ad76d 0 23%, transparent 24%),
+        radial-gradient(circle at 72% 100%, #5ac85b 0 24%, transparent 25%),
+        radial-gradient(circle at 90% 100%, #7ad76d 0 20%, transparent 21%);
+    }
+
+    body::after {
+      top: 40px;
+      right: 60px;
+      width: 140px;
+      height: 80px;
+      background:
+        radial-gradient(circle at 30% 50%, rgba(255,255,255,0.96) 0 28%, transparent 29%),
+        radial-gradient(circle at 52% 42%, rgba(255,255,255,0.96) 0 24%, transparent 25%),
+        radial-gradient(circle at 70% 55%, rgba(255,255,255,0.96) 0 26%, transparent 27%);
+      opacity: 0.9;
+    }
+
+    .shell {
+      width: min(1180px, calc(100% - 28px));
+      margin: 18px auto 28px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .hero,
+    .panel,
+    .question-card,
+    .answers,
+    .level-list {
+      background: var(--card);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.65);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .hero {
+      padding: 22px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .hero-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.9rem, 4vw, 3.1rem);
+      color: #ff7043;
+    }
+
+    .subtitle {
+      margin: 8px 0 0;
+      font-size: 1.05rem;
+      max-width: 760px;
+      line-height: 1.6;
+    }
+
+    .lang-switch {
+      display: inline-flex;
+      gap: 10px;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.7);
+      padding: 8px;
+      border-radius: 999px;
+    }
+
+    .lang-switch button,
+    .level-btn,
+    .answer-btn,
+    .action-btn {
+      border: none;
+      cursor: pointer;
+      font: inherit;
+    }
+
+    .lang-switch button,
+    .action-btn {
+      padding: 10px 16px;
+      border-radius: 999px;
+      background: #ffffff;
+      color: var(--ink);
+      box-shadow: 0 6px 16px rgba(108, 140, 255, 0.18);
+      transition: transform 0.15s ease, background 0.15s ease;
+    }
+
+    .lang-switch button.active,
+    .action-btn.primary {
+      background: linear-gradient(135deg, #ff8a65, #ffb86b);
+      color: white;
+    }
+
+    .lang-switch button:hover,
+    .level-btn:hover,
+    .answer-btn:hover,
+    .action-btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 18px;
+    }
+
+    .panel,
+    .question-card,
+    .answers,
+    .level-list {
+      padding: 20px;
+    }
+
+    .left-side {
+      display: grid;
+      gap: 18px;
+      align-content: start;
+    }
+
+    .panel h2,
+    .question-card h2,
+    .level-list h2 {
+      margin: 0 0 14px;
+      font-size: 1.15rem;
+    }
+
+    .score-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .metric {
+      background: rgba(255, 255, 255, 0.8);
+      border-radius: 18px;
+      padding: 14px;
+      text-align: center;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 1.55rem;
+      color: var(--accent-2);
+      margin-bottom: 4px;
+    }
+
+    .feedback {
+      min-height: 72px;
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.75);
+      line-height: 1.6;
+    }
+
+    .path-card {
+      display: grid;
+      gap: 12px;
+    }
+
+    .path-track {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      align-items: center;
+    }
+
+    .path-track::before {
+      content: "";
+      position: absolute;
+      left: 12%;
+      right: 12%;
+      top: 50%;
+      height: 8px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #ffd96a, #ff9f68, #6c8cff);
+      transform: translateY(-50%);
+      z-index: 0;
+    }
+
+    .path-stop {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      justify-items: center;
+      gap: 6px;
+    }
+
+    .path-badge {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-size: 1.35rem;
+      font-weight: 800;
+      background: white;
+      box-shadow: 0 8px 16px rgba(36, 49, 74, 0.12);
+      border: 3px solid transparent;
+    }
+
+    .path-stop.active .path-badge {
+      border-color: #ff8a65;
+      transform: scale(1.08);
+    }
+
+    .path-stop small {
+      font-size: 0.8rem;
+      text-align: center;
+      line-height: 1.3;
+    }
+
+    .level-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .level-btn {
+      width: 100%;
+      padding: 14px 16px;
+      text-align: left;
+      border-radius: 18px;
+      background: white;
+      box-shadow: 0 8px 18px rgba(36, 49, 74, 0.08);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .level-btn.active {
+      background: linear-gradient(135deg, #6c8cff, #8ea6ff);
+      color: white;
+      box-shadow: 0 14px 24px rgba(108, 140, 255, 0.28);
+    }
+
+    .level-btn small {
+      display: block;
+      opacity: 0.82;
+      margin-top: 6px;
+    }
+
+    .play-area {
+      display: grid;
+      gap: 18px;
+    }
+
+    .question-card {
+      display: grid;
+      gap: 20px;
+      overflow: hidden;
+    }
+
+    .scene {
+      display: grid;
+      grid-template-columns: minmax(220px, 340px) 1fr;
+      gap: 18px;
+      align-items: center;
+    }
+
+    .cube-wrap {
+      perspective: 900px;
+      min-height: 260px;
+      background: linear-gradient(180deg, #dff5ff, #fff6d6);
+      border-radius: 22px;
+      padding: 16px;
+    }
+
+    .visual-stage {
+      width: 100%;
+      display: grid;
+      gap: 16px;
+      align-items: center;
+      justify-items: center;
+    }
+
+    .cube {
+      position: relative;
+      width: 150px;
+      height: 150px;
+      transform-style: preserve-3d;
+      animation: spin 12s linear infinite;
+    }
+
+    .face {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 26px;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: white;
+      border: 4px solid rgba(255, 255, 255, 0.65);
+      box-shadow: inset 0 0 24px rgba(255, 255, 255, 0.25);
+    }
+
+    .front { background: linear-gradient(135deg, #ff8a65, #ffb347); transform: translateZ(75px); }
+    .back { background: linear-gradient(135deg, #6c8cff, #8fd3ff); transform: rotateY(180deg) translateZ(75px); }
+    .right { background: linear-gradient(135deg, #8ddf77, #4bc8a8); transform: rotateY(90deg) translateZ(75px); }
+    .left { background: linear-gradient(135deg, #c98fff, #7b7cff); transform: rotateY(-90deg) translateZ(75px); }
+    .top { background: linear-gradient(135deg, #ffe46d, #ff9f5a); transform: rotateX(90deg) translateZ(75px); }
+    .bottom { background: linear-gradient(135deg, #7bd8ff, #6c8cff); transform: rotateX(-90deg) translateZ(75px); }
+
+    .mascot-card {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 68px 1fr;
+      gap: 12px;
+      align-items: center;
+      padding: 12px 14px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.82);
+      box-shadow: 0 10px 18px rgba(36, 49, 74, 0.08);
+    }
+
+    .mascot-icon {
+      width: 68px;
+      height: 68px;
+      display: grid;
+      place-items: center;
+      border-radius: 18px;
+      font-size: 2rem;
+      background: linear-gradient(135deg, #ffefb3, #ffd1dc);
+      box-shadow: inset 0 0 18px rgba(255, 255, 255, 0.6);
+    }
+
+    .mascot-text strong {
+      display: block;
+      font-size: 1rem;
+      margin-bottom: 4px;
+    }
+
+    .mascot-text span {
+      font-size: 0.92rem;
+      line-height: 1.45;
+    }
+
+    .fruit-stage {
+      width: 100%;
+      display: grid;
+      gap: 10px;
+      background: rgba(255, 255, 255, 0.72);
+      border-radius: 20px;
+      padding: 14px;
+      box-shadow: 0 10px 20px rgba(36, 49, 74, 0.08);
+    }
+
+    .fruit-line {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .fruit-label {
+      min-width: 76px;
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--accent-2);
+      text-align: center;
+    }
+
+    .fruit-row,
+    .repeat-groups {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      min-height: 44px;
+    }
+
+    .fruit-token {
+      width: 38px;
+      height: 38px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      font-size: 1.35rem;
+      background: linear-gradient(145deg, #fff, #ffe0b2);
+      box-shadow:
+        inset -3px -3px 8px rgba(255, 255, 255, 0.85),
+        inset 3px 3px 8px rgba(255, 138, 101, 0.18),
+        0 8px 14px rgba(36, 49, 74, 0.12);
+      transform: translateZ(0);
+    }
+
+    .fruit-token.removed {
+      opacity: 0.35;
+      filter: grayscale(0.4);
+    }
+
+    .operator-pill {
+      width: 44px;
+      height: 44px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: white;
+      background: linear-gradient(135deg, #6c8cff, #8ea6ff);
+      box-shadow: 0 8px 16px rgba(108, 140, 255, 0.24);
+    }
+
+    .repeat-group {
+      display: grid;
+      gap: 6px;
+      justify-items: center;
+      padding: 8px 10px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.7);
+      border: 1px solid rgba(108, 140, 255, 0.16);
+    }
+
+    .repeat-group small {
+      font-size: 0.8rem;
+      color: #5e6c8b;
+    }
+
+    @keyframes spin {
+      from { transform: rotateX(-20deg) rotateY(0deg); }
+      to { transform: rotateX(-20deg) rotateY(360deg); }
+    }
+
+    .question-text {
+      font-size: clamp(1.6rem, 4vw, 2.6rem);
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+
+    .hint {
+      font-size: 1rem;
+      line-height: 1.6;
+    }
+
+    .answers {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .answer-btn {
+      padding: 18px 14px;
+      border-radius: 20px;
+      background: white;
+      font-size: 1.25rem;
+      font-weight: 800;
+      box-shadow: 0 10px 20px rgba(36, 49, 74, 0.08);
+    }
+
+    .answer-btn.correct {
+      background: linear-gradient(135deg, #4fd89d, #2fb46f);
+      color: white;
+    }
+
+    .answer-btn.wrong {
+      background: linear-gradient(135deg, #ffb36b, #ff8a65);
+      color: white;
+    }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .mini-note {
+      font-size: 0.95rem;
+      opacity: 0.85;
+    }
+
+    .audio-note {
+      font-size: 0.9rem;
+      opacity: 0.82;
+      margin-top: 4px;
+    }
+
+    @media (max-width: 900px) {
+      .main-grid,
+      .scene {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .answers {
+        grid-template-columns: 1fr;
+      }
+
+      .hero,
+      .panel,
+      .question-card,
+      .answers,
+      .level-list {
+        padding: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="hero">
+      <div class="hero-top">
+        <div>
+          <h1 id="title"></h1>
+          <p class="subtitle" id="subtitle"></p>
+        </div>
+        <div class="lang-switch">
+          <button id="langZh" type="button">中文</button>
+          <button id="langEn" type="button">English</button>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="action-btn primary" id="nextBtn" type="button"></button>
+        <button class="action-btn" id="resetBtn" type="button"></button>
+      </div>
+    </section>
+
+    <section class="main-grid">
+      <div class="left-side">
+        <section class="panel">
+          <h2 id="scoreTitle"></h2>
+          <div class="score-grid">
+            <div class="metric">
+              <strong id="scoreValue">0</strong>
+              <span id="scoreLabel"></span>
+            </div>
+            <div class="metric">
+              <strong id="streakValue">0</strong>
+              <span id="streakLabel"></span>
+            </div>
+            <div class="metric">
+              <strong id="answeredValue">0</strong>
+              <span id="answeredLabel"></span>
+            </div>
+            <div class="metric">
+              <strong id="levelValue">K1</strong>
+              <span id="levelLabel"></span>
+            </div>
+          </div>
+          <div class="feedback" id="feedback"></div>
+        </section>
+
+        <section class="level-list">
+          <h2 id="levelTitle"></h2>
+          <button class="level-btn" data-level="K1" type="button"></button>
+          <button class="level-btn" data-level="K2" type="button"></button>
+          <button class="level-btn" data-level="K3" type="button"></button>
+          <button class="level-btn" data-level="P1" type="button"></button>
+        </section>
+
+        <section class="panel path-card">
+          <h2 id="mapTitle"></h2>
+          <div class="path-track">
+            <div class="path-stop" data-stop="K1">
+              <div class="path-badge">1</div>
+              <small id="mapK1"></small>
+            </div>
+            <div class="path-stop" data-stop="K2">
+              <div class="path-badge">2</div>
+              <small id="mapK2"></small>
+            </div>
+            <div class="path-stop" data-stop="K3">
+              <div class="path-badge">3</div>
+              <small id="mapK3"></small>
+            </div>
+            <div class="path-stop" data-stop="P1">
+              <div class="path-badge">4</div>
+              <small id="mapP1"></small>
+            </div>
+          </div>
+          <div class="audio-note" id="audioNote"></div>
+        </section>
+      </div>
+
+      <div class="play-area">
+        <section class="question-card">
+          <h2 id="questionTitle"></h2>
+          <div class="scene">
+            <div class="cube-wrap">
+              <div class="visual-stage">
+                <div class="mascot-card">
+                  <div class="mascot-icon" id="mascotIcon"></div>
+                  <div class="mascot-text">
+                    <strong id="mascotName"></strong>
+                    <span id="mascotSpeech"></span>
+                  </div>
+                </div>
+                <div class="cube" aria-hidden="true">
+                  <div class="face front" id="cubeFront"></div>
+                  <div class="face back" id="cubeBack"></div>
+                  <div class="face right" id="cubeRight"></div>
+                  <div class="face left" id="cubeLeft"></div>
+                  <div class="face top" id="cubeTop"></div>
+                  <div class="face bottom" id="cubeBottom"></div>
+                </div>
+                <div class="fruit-stage">
+                  <div class="fruit-line">
+                    <div class="fruit-label" id="groupALabel"></div>
+                    <div class="fruit-row" id="groupA"></div>
+                  </div>
+                  <div class="fruit-line">
+                    <div class="operator-pill" id="visualOperator"></div>
+                  </div>
+                  <div class="fruit-line">
+                    <div class="fruit-label" id="groupBLabel"></div>
+                    <div class="fruit-row" id="groupB"></div>
+                  </div>
+                  <div class="fruit-line" id="repeatLine" hidden>
+                    <div class="fruit-label" id="repeatLabel"></div>
+                    <div class="repeat-groups" id="repeatGroups"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <div class="question-text" id="questionText"></div>
+              <p class="hint" id="hintText"></p>
+              <p class="mini-note" id="verifyText"></p>
+            </div>
+          </div>
+        </section>
+
+        <section class="answers" id="answers"></section>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const translations = {
+      zh: {
+        title: "3D 數學冒險樂園",
+        subtitle: "適合 K1、K2、K3 和 P1 小朋友的雙語計算遊戲。隨時切換中文或 English，一邊玩一邊學加減乘。",
+        next: "下一題",
+        reset: "重新開始",
+        scoreTitle: "學習進度",
+        score: "分數",
+        streak: "連續答對",
+        answered: "已完成",
+        level: "級別",
+        levelTitle: "選擇程度",
+        questionTitle: "今題任務",
+        mapTitle: "冒險地圖",
+        audioNote: "已加入簡單音效：答對、答錯和下一題都會有提示聲。",
+        verify: "簡單驗證：答對會加分並自動出下一題。",
+        feedbackStart: "先選一個級別，然後按答案開始學習吧！",
+        correct: "答對了！你好叻！",
+        wrong: "差一點，再試一次！",
+        prompt: "請選出正確答案。",
+        visualA: "第一組",
+        visualB: "第二組",
+        repeat: "重複組",
+        langName: "中文",
+        levels: {
+          K1: { name: "K1 幼稚園", desc: "1 至 5 的看圖加法" },
+          K2: { name: "K2 幼稚園", desc: "10 以內加減法" },
+          K3: { name: "K3 幼稚園", desc: "20 以內加減法" },
+          P1: { name: "P1 初小", desc: "20 以內加減及簡單乘法" }
+        },
+        mapLabels: {
+          K1: "水果村",
+          K2: "香蕉橋",
+          K3: "草莓森林",
+          P1: "星星城堡"
+        },
+        hints: {
+          add: "看看 3D 方塊上的數字，把它們加起來。",
+          sub: "由大數減去小數，慢慢數都可以。",
+          mul: "把同樣數量重複幾次，就是乘法。"
+        },
+        mascots: {
+          K1: { name: "蘋果小精靈", speech: "一齊數水果，慢慢加上去！" },
+          K2: { name: "香蕉隊長", speech: "記住可以加，也可以減走一些。" },
+          K3: { name: "草莓老師", speech: "試下觀察數量，再快速計算！" },
+          P1: { name: "星星機械人", speech: "加減乘都可以，勇敢挑戰吧！" }
+        }
+      },
+      en: {
+        title: "3D Math Adventure",
+        subtitle: "A bilingual maths game for K1, K2, K3 and P1 learners. Switch between Chinese and English anytime while practising addition, subtraction and multiplication.",
+        next: "Next Question",
+        reset: "Restart",
+        scoreTitle: "Learning Progress",
+        score: "Score",
+        streak: "Streak",
+        answered: "Answered",
+        level: "Level",
+        levelTitle: "Choose a Level",
+        questionTitle: "Today's Mission",
+        mapTitle: "Adventure Map",
+        audioNote: "Simple sound effects are on for correct, wrong and next-question actions.",
+        verify: "Simple check: correct answers add points and generate a new question.",
+        feedbackStart: "Pick a level and tap an answer to begin learning!",
+        correct: "Correct! Great job!",
+        wrong: "Almost there. Try again!",
+        prompt: "Choose the correct answer.",
+        visualA: "Group A",
+        visualB: "Group B",
+        repeat: "Groups",
+        langName: "English",
+        levels: {
+          K1: { name: "K1 Kindergarten", desc: "Picture-style addition from 1 to 5" },
+          K2: { name: "K2 Kindergarten", desc: "Addition and subtraction within 10" },
+          K3: { name: "K3 Kindergarten", desc: "Addition and subtraction within 20" },
+          P1: { name: "P1 Primary", desc: "Addition, subtraction and simple multiplication" }
+        },
+        mapLabels: {
+          K1: "Fruit Village",
+          K2: "Banana Bridge",
+          K3: "Berry Forest",
+          P1: "Star Castle"
+        },
+        hints: {
+          add: "Look at the 3D blocks and add the numbers together.",
+          sub: "Subtract the smaller number from the bigger one.",
+          mul: "Multiplication means repeating the same group a few times."
+        },
+        mascots: {
+          K1: { name: "Apple Sprite", speech: "Let's count the fruit and add them together!" },
+          K2: { name: "Captain Banana", speech: "We can add more or take some away." },
+          K3: { name: "Teacher Berry", speech: "Watch the groups and solve it faster!" },
+          P1: { name: "Star Robot", speech: "You can do addition, subtraction and multiplication!" }
+        }
+      }
+    };
+
+    const state = {
+      lang: "zh",
+      level: "K1",
+      score: 0,
+      streak: 0,
+      answered: 0,
+      current: null
+    };
+
+    const titleEl = document.getElementById("title");
+    const subtitleEl = document.getElementById("subtitle");
+    const scoreTitleEl = document.getElementById("scoreTitle");
+    const scoreLabelEl = document.getElementById("scoreLabel");
+    const streakLabelEl = document.getElementById("streakLabel");
+    const answeredLabelEl = document.getElementById("answeredLabel");
+    const levelLabelEl = document.getElementById("levelLabel");
+    const levelTitleEl = document.getElementById("levelTitle");
+    const levelValueEl = document.getElementById("levelValue");
+    const questionTitleEl = document.getElementById("questionTitle");
+    const mapTitleEl = document.getElementById("mapTitle");
+    const audioNoteEl = document.getElementById("audioNote");
+    const mapK1El = document.getElementById("mapK1");
+    const mapK2El = document.getElementById("mapK2");
+    const mapK3El = document.getElementById("mapK3");
+    const mapP1El = document.getElementById("mapP1");
+    const questionTextEl = document.getElementById("questionText");
+    const hintTextEl = document.getElementById("hintText");
+    const feedbackEl = document.getElementById("feedback");
+    const verifyTextEl = document.getElementById("verifyText");
+    const answersEl = document.getElementById("answers");
+    const nextBtn = document.getElementById("nextBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const scoreValueEl = document.getElementById("scoreValue");
+    const streakValueEl = document.getElementById("streakValue");
+    const answeredValueEl = document.getElementById("answeredValue");
+    const langZhBtn = document.getElementById("langZh");
+    const langEnBtn = document.getElementById("langEn");
+    const mascotIconEl = document.getElementById("mascotIcon");
+    const mascotNameEl = document.getElementById("mascotName");
+    const mascotSpeechEl = document.getElementById("mascotSpeech");
+    const groupALabelEl = document.getElementById("groupALabel");
+    const groupBLabelEl = document.getElementById("groupBLabel");
+    const groupAEl = document.getElementById("groupA");
+    const groupBEl = document.getElementById("groupB");
+    const repeatLineEl = document.getElementById("repeatLine");
+    const repeatLabelEl = document.getElementById("repeatLabel");
+    const repeatGroupsEl = document.getElementById("repeatGroups");
+    const visualOperatorEl = document.getElementById("visualOperator");
+    const cubeFaces = [
+      document.getElementById("cubeFront"),
+      document.getElementById("cubeBack"),
+      document.getElementById("cubeRight"),
+      document.getElementById("cubeLeft"),
+      document.getElementById("cubeTop"),
+      document.getElementById("cubeBottom")
+    ];
+
+    const levelButtons = [...document.querySelectorAll(".level-btn")];
+    const pathStops = [...document.querySelectorAll(".path-stop")];
+    const levelThemes = {
+      K1: { fruit: "🍎", accent: "#ff8a65", mascot: "🧚" },
+      K2: { fruit: "🍌", accent: "#ffcf5c", mascot: "🐵" },
+      K3: { fruit: "🍓", accent: "#ff6f91", mascot: "🦊" },
+      P1: { fruit: "⭐", accent: "#6c8cff", mascot: "🤖" }
+    };
+    let audioCtx = null;
+
+    function rand(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function shuffle(items) {
+      const list = [...items];
+      for (let i = list.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [list[i], list[j]] = [list[j], list[i]];
+      }
+      return list;
+    }
+
+    function createQuestion(level) {
+      if (level === "K1") {
+        const a = rand(1, 3);
+        const b = rand(1, 2);
+        return buildQuestion(level, a, b, "+", a + b, "add");
+      }
+
+      if (level === "K2") {
+        const isAdd = Math.random() > 0.35;
+        if (isAdd) {
+          const a = rand(1, 6);
+          const b = rand(1, 4);
+          return buildQuestion(level, a, b, "+", a + b, "add");
+        }
+        const answer = rand(0, 8);
+        const b = rand(1, 4);
+        return buildQuestion(level, answer + b, b, "-", answer, "sub");
+      }
+
+      if (level === "K3") {
+        const isAdd = Math.random() > 0.45;
+        if (isAdd) {
+          const a = rand(4, 12);
+          const b = rand(1, 8);
+          return buildQuestion(level, a, b, "+", a + b, "add");
+        }
+        const answer = rand(2, 15);
+        const b = rand(1, 8);
+        return buildQuestion(level, answer + b, b, "-", answer, "sub");
+      }
+
+      const roll = Math.random();
+      if (roll < 0.4) {
+        const a = rand(6, 15);
+        const b = rand(2, 5);
+        return buildQuestion(level, a, b, "+", a + b, "add");
+      }
+      if (roll < 0.75) {
+        const answer = rand(2, 15);
+        const b = rand(2, 8);
+        return buildQuestion(level, answer + b, b, "-", answer, "sub");
+      }
+      const a = rand(2, 5);
+      const b = rand(2, 4);
+      return buildQuestion(level, a, b, "×", a * b, "mul");
+    }
+
+    function buildQuestion(level, a, b, operator, answer, hintKey) {
+      const rawChoices = [answer, answer + 1, Math.max(0, answer - 1), answer + rand(2, 4)];
+      const choices = [...new Set(rawChoices)].slice(0, 4);
+      while (choices.length < 4) {
+        const candidate = Math.max(0, answer + rand(-3, 4));
+        if (!choices.includes(candidate)) choices.push(candidate);
+      }
+      return {
+        level,
+        a,
+        b,
+        operator,
+        answer,
+        hintKey,
+        theme: levelThemes[level],
+        choices: shuffle(choices)
+      };
+    }
+
+    function renderStaticText() {
+      const t = translations[state.lang];
+      document.documentElement.lang = state.lang === "zh" ? "zh-HK" : "en";
+      titleEl.textContent = t.title;
+      subtitleEl.textContent = t.subtitle;
+      nextBtn.textContent = t.next;
+      resetBtn.textContent = t.reset;
+      scoreTitleEl.textContent = t.scoreTitle;
+      scoreLabelEl.textContent = t.score;
+      streakLabelEl.textContent = t.streak;
+      answeredLabelEl.textContent = t.answered;
+      levelLabelEl.textContent = t.level;
+      levelTitleEl.textContent = t.levelTitle;
+      questionTitleEl.textContent = t.questionTitle;
+      mapTitleEl.textContent = t.mapTitle;
+      audioNoteEl.textContent = t.audioNote;
+      verifyTextEl.textContent = t.verify;
+      langZhBtn.classList.toggle("active", state.lang === "zh");
+      langEnBtn.classList.toggle("active", state.lang === "en");
+      mapK1El.textContent = t.mapLabels.K1;
+      mapK2El.textContent = t.mapLabels.K2;
+      mapK3El.textContent = t.mapLabels.K3;
+      mapP1El.textContent = t.mapLabels.P1;
+
+      levelButtons.forEach((button) => {
+        const info = t.levels[button.dataset.level];
+        button.innerHTML = `${info.name}<small>${info.desc}</small>`;
+        button.classList.toggle("active", button.dataset.level === state.level);
+      });
+
+      pathStops.forEach((stop) => {
+        stop.classList.toggle("active", stop.dataset.stop === state.level);
+      });
+
+      if (!state.current) {
+        feedbackEl.textContent = t.feedbackStart;
+      }
+    }
+
+    function renderQuestion() {
+      const t = translations[state.lang];
+      if (!state.current) {
+        state.current = createQuestion(state.level);
+      }
+      const q = state.current;
+      levelValueEl.textContent = state.level;
+      scoreValueEl.textContent = state.score;
+      streakValueEl.textContent = state.streak;
+      answeredValueEl.textContent = state.answered;
+      questionTextEl.textContent = `${q.a} ${q.operator} ${q.b} = ?`;
+      hintTextEl.textContent = `${t.prompt} ${t.hints[q.hintKey]}`;
+      renderCube(q);
+      renderVisuals(q);
+      renderAnswers(q);
+    }
+
+    function renderCube(q) {
+      const symbols = [q.a, q.operator, q.b, "=", "?", q.answer];
+      cubeFaces.forEach((face, index) => {
+        face.textContent = symbols[index];
+      });
+    }
+
+    function renderVisuals(q) {
+      const t = translations[state.lang];
+      const mascot = t.mascots[q.level];
+      mascotIconEl.textContent = q.theme.mascot;
+      mascotNameEl.textContent = mascot.name;
+      mascotSpeechEl.textContent = mascot.speech;
+      visualOperatorEl.textContent = q.operator;
+      groupALabelEl.textContent = t.visualA;
+      groupBLabelEl.textContent = t.visualB;
+      repeatLabelEl.textContent = t.repeat;
+      groupAEl.innerHTML = "";
+      groupBEl.innerHTML = "";
+      repeatGroupsEl.innerHTML = "";
+      repeatLineEl.hidden = q.operator !== "×";
+
+      if (q.operator === "×") {
+        groupAEl.appendChild(makeTag(`${q.a}`));
+        groupBEl.appendChild(makeTag(`${q.b}`));
+        for (let i = 0; i < q.a; i++) {
+          const group = document.createElement("div");
+          group.className = "repeat-group";
+          const row = document.createElement("div");
+          row.className = "fruit-row";
+          for (let j = 0; j < q.b; j++) {
+            row.appendChild(makeFruit(q.theme.fruit));
+          }
+          const note = document.createElement("small");
+          note.textContent = `${i + 1}`;
+          group.append(row, note);
+          repeatGroupsEl.appendChild(group);
+        }
+        return;
+      }
+
+      for (let i = 0; i < q.a; i++) {
+        groupAEl.appendChild(makeFruit(q.theme.fruit));
+      }
+      for (let i = 0; i < q.b; i++) {
+        groupBEl.appendChild(makeFruit(q.theme.fruit, q.operator === "-"));
+      }
+    }
+
+    function makeFruit(symbol, removed = false) {
+      const token = document.createElement("span");
+      token.className = "fruit-token";
+      if (removed) token.classList.add("removed");
+      token.textContent = symbol;
+      return token;
+    }
+
+    function makeTag(text) {
+      const tag = document.createElement("span");
+      tag.className = "fruit-token";
+      tag.textContent = text;
+      return tag;
+    }
+
+    function renderAnswers(q) {
+      answersEl.innerHTML = "";
+      q.choices.forEach((choice) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "answer-btn";
+        button.textContent = choice;
+        button.addEventListener("click", () => checkAnswer(choice, button));
+        answersEl.appendChild(button);
+      });
+    }
+
+    function ensureAudio() {
+      if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return null;
+        audioCtx = new AudioContextClass();
+      }
+      if (audioCtx.state === "suspended") {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    function playSound(type) {
+      const ctx = ensureAudio();
+      if (!ctx) return;
+      const config = {
+        correct: { freq: [523.25, 659.25, 783.99], duration: 0.14, gain: 0.05 },
+        wrong: { freq: [280, 220], duration: 0.18, gain: 0.05 },
+        next: { freq: [392, 523.25], duration: 0.1, gain: 0.035 }
+      }[type];
+      if (!config) return;
+
+      let start = ctx.currentTime;
+      config.freq.forEach((freq) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = type === "wrong" ? "square" : "sine";
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(config.gain, start);
+        gain.gain.exponentialRampToValueAtTime(0.001, start + config.duration);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(start);
+        osc.stop(start + config.duration);
+        start += config.duration * 0.75;
+      });
+    }
+
+    function checkAnswer(choice, button) {
+      const t = translations[state.lang];
+      if (!state.current) return;
+
+      if (choice === state.current.answer) {
+        playSound("correct");
+        button.classList.add("correct");
+        state.score += 10;
+        state.streak += 1;
+        state.answered += 1;
+        feedbackEl.textContent = `${t.correct} ${state.current.a} ${state.current.operator} ${state.current.b} = ${state.current.answer}`;
+        setTimeout(() => {
+          state.current = createQuestion(state.level);
+          renderQuestion();
+        }, 700);
+      } else {
+        playSound("wrong");
+        button.classList.add("wrong");
+        state.streak = 0;
+        feedbackEl.textContent = `${t.wrong} ${state.current.a} ${state.current.operator} ${state.current.b} = ?`;
+        setTimeout(() => button.classList.remove("wrong"), 500);
+        renderQuestion();
+      }
+
+      scoreValueEl.textContent = state.score;
+      streakValueEl.textContent = state.streak;
+      answeredValueEl.textContent = state.answered;
+    }
+
+    function setLevel(level) {
+      state.level = level;
+      state.current = createQuestion(level);
+      renderStaticText();
+      renderQuestion();
+    }
+
+    function setLanguage(lang) {
+      state.lang = lang;
+      renderStaticText();
+      renderQuestion();
+    }
+
+    nextBtn.addEventListener("click", () => {
+      playSound("next");
+      state.current = createQuestion(state.level);
+      renderQuestion();
+    });
+
+    resetBtn.addEventListener("click", () => {
+      playSound("next");
+      state.score = 0;
+      state.streak = 0;
+      state.answered = 0;
+      state.current = createQuestion(state.level);
+      feedbackEl.textContent = translations[state.lang].feedbackStart;
+      renderQuestion();
+    });
+
+    langZhBtn.addEventListener("click", () => setLanguage("zh"));
+    langEnBtn.addEventListener("click", () => setLanguage("en"));
+    levelButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        playSound("next");
+        setLevel(button.dataset.level);
+      });
+    });
+
+    renderStaticText();
+    setLevel("K1");
+  </script>
+</body>
+</html>
